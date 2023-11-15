@@ -1132,7 +1132,7 @@ def main():
     initialize_file()
 
     # Replace YOUR_API_KEY with your actual Telegram API key (not the Myriad api key)
-    updater = Updater("6073392763:AAEvxs2CIEWmT8Iv9bJQHplM8KQdiu6drow")
+    updater = Updater(":")
 
     # Get the dispatcher to register handlers
     dispatcher = updater.dispatcher
