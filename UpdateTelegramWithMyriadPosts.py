@@ -115,7 +115,7 @@ def main():
     print("Bot is starting...")
     
     # Initialize Telegram bot
-    updater = Updater(token='6073392763:AAEvxs2CIEWmT8Iv9bJQHplM8KQdiu6drow', use_context=True)
+    updater = Updater(token=':', use_context=True)
     dispatcher = updater.dispatcher
 
 
