@@ -562,9 +562,8 @@ def add_to_default_experience(update: Update, context: CallbackContext, username
 
 
 
-def create_myriad_post(update: Update, context: CallbackContext, title, text_blocks, platform='myriad', visibility='public') -> int:
+def create_myriad_post(update: Update, context: CallbackContext, title, text_blocks, platform='myriad', visibility='public', return_post_id=False):
     print("Entering create_myriad_post()")
-    
     
     
     username = update.message.from_user.username
@@ -627,11 +626,18 @@ def create_myriad_post(update: Update, context: CallbackContext, title, text_blo
         add_to_default_experience(update, context, username, post_id, headers)  # Call the new function
 
         m_view(update, context, ["1"])
+        if return_post_id:
+            return post_id  # Return the post_id if requested
     else:
         update.message.reply_text(f"Error creating post: {post_response.status_code}")
         print(f"Error creating post: {post_response.status_code}")
+        if return_post_id:
+            return None  # Return None if there was an error and post_id was requested
 
-    return TOKEN
+
+    
+    # The existing return statement for backward compatibility
+    return TOKEN if not return_post_id else None
 
     
     
@@ -1019,6 +1025,37 @@ def getexp():
         print(data)  # print the entire data
         break  # break the loop to avoid flooding the output
 
+def parse_poll_command(command_text):
+    """
+    Parses the input text from the /poll command to extract the question and options.
+    """
+    match = re.match(r'/poll\s+(.+?)\s+\((.+?)\)\((.+?)\)', command_text)
+    if not match:
+        raise ValueError("Invalid poll format. Ensure it matches: /poll QUESTION (ANSWER 1)(ANSWER 2)")
+    question, answer1, answer2 = match.groups()
+    return question, [answer1, answer2]
+
+def poll(update: Update, context: CallbackContext):
+    command_text = update.message.text
+    try:
+        # Extracting the question and options from the command
+        question, options = parse_poll_command(command_text)
+    except ValueError as e:
+        # Informing the user if the poll command format is incorrect
+        update.message.reply_text(str(e))
+        return
+
+    title = "Poll: " + question  
+    text_blocks = [question]  
+    #create_myriad_post(update, context, title, text_blocks)
+    #post_id = context.user_data.get('post_id')
+    post_id = create_myriad_post(update, context, question, [question], return_post_id=True)
+    if post_id:
+        for option in options:
+            create_comment(update, post_id, f"{option} (send tokens to vote!)")
+        update.message.reply_text("Poll created successfully!")
+    else:
+        update.message.reply_text("Failed to create the poll. Please try again.")
 
 
 # Command handler for /start command
@@ -1132,7 +1169,7 @@ def main():
     initialize_file()
 
     # Replace YOUR_API_KEY with your actual Telegram API key (not the Myriad api key)
-    updater = Updater(":")
+    updater = Updater("xxxxx:xxxxxxxxxxxxxxxxxxxx")
 
     # Get the dispatcher to register handlers
     dispatcher = updater.dispatcher
@@ -1166,7 +1203,7 @@ def main():
     dispatcher.add_handler(CommandHandler('embed', m_embed))
     dispatcher.add_handler(CommandHandler('view', viewbuttons))
     dispatcher.add_handler(CommandHandler('newtimeline', newtimeline_command))
-    
+    dispatcher.add_handler(CommandHandler('poll', poll))
     dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_text))
     dispatcher.add_handler(CallbackQueryHandler(button))  # Add the CallbackQueryHandler directly to the dispatcher
     # Start the bot
