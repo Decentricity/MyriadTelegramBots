@@ -511,11 +511,22 @@ def import_post(update: Update, context: CallbackContext, post_url, importer="tw
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ' + at,
     }
+
+    default_experience_id = data[username].get('default_experience', {}).get('experience_id')
+    print(f"Default Experience ID: {default_experience_id}")  # Print the Default Experience ID
+    if not default_experience_id:
+        # Create a new default experience if it doesn't exist
+        create_experience(update, context)
+        # Reload the data to get the newly created default experience
+        with open("emails.json", "r") as file:
+            data = json.load(file)
+        default_experience_id = data[username].get('default_experience', {}).get('experience_id')
+        print(f"New Default Experience ID: {default_experience_id}")  # Print the New Default Experience ID
     
     data = {
         "url": post_url,
         "importer": importer,
-        "selectedTimelineIds": selected_timeline_ids if selected_timeline_ids else [],
+        "selectedTimelineIds": selected_timeline_ids if selected_timeline_ids else [default_experience_id],
     }
     
     response = requests.post(api_endpoint, headers=headers, json=data)
@@ -524,7 +535,6 @@ def import_post(update: Update, context: CallbackContext, post_url, importer="tw
         post_id = response.json()['id']  # Get the post ID
         update.message.reply_text("Post successfully imported into Myriad.")
         print("Post successfully imported into Myriad.")
-        add_to_default_experience(update, context, username, post_id, headers)
         m_view(update, context, ["1"])  
     else:
         update.message.reply_text(f"Error importing post: {response.status_code}")
@@ -609,7 +619,7 @@ def create_myriad_post(update: Update, context: CallbackContext, title, text_blo
         "rawText": '\n'.join(text_blocks),
         "text": '\n'.join(text_blocks),  # Use the same value as 'rawText'
         "status": "published",
-        "selectedTimelineIds": [str(default_experience_id)]
+        "selectedTimelineIds": [default_experience_id],
     }
     
     
@@ -622,8 +632,6 @@ def create_myriad_post(update: Update, context: CallbackContext, title, text_blo
         print(post_response.text)
         update.message.reply_text("Post created successfully!")
         print("Post created successfully!")
-
-        add_to_default_experience(update, context, username, post_id, headers)  # Call the new function
 
         m_view(update, context, ["1"])
         if return_post_id:
